@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>TechFlow - HubSpot + Slack Integration Guide</title>
+	<style type="text/css">
+		@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+			background: #0f1419;
+			color: #e4e7eb;
+			line-height: 1.7;
+		}
+
+		#blackdiv {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0,0,0,0.9);
+			z-index: 1000;
+			display: none;
+			backdrop-filter: blur(5px);
+		}
+
+		/* Header */
+		.header {
+			background: #1a1f2e;
+			border-bottom: 1px solid #2d3748;
+			padding: 20px 0;
+			position: sticky;
+			top: 0;
+			z-index: 100;
+			backdrop-filter: blur(10px);
+		}
+
+		.header-container {
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 0 20px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.logo {
+			font-family: 'Playfair Display', serif;
+			font-size: 1.8rem;
+			font-weight: 700;
+			color: #00d4aa;
+		}
+
+		.nav-menu {
+			display: flex;
+			gap: 35px;
+		}
+
+		.nav-item {
+			color: #a0aec0;
+			text-decoration: none;
+			font-weight: 500;
+			font-size: 0.95rem;
+			transition: color 0.3s;
+			position: relative;
+		}
+
+		.nav-item:hover {
+			color: #00d4aa;
+		}
+
+		.nav-item::after {
+			content: '';
+			position: absolute;
+			bottom: -5px;
+			left: 0;
+			width: 0;
+			height: 2px;
+			background: #00d4aa;
+			transition: width 0.3s;
+		}
+
+		.nav-item:hover::after {
+			width: 100%;
+		}
+
+		/* Blog Header */
+		.blog-header {
+			padding: 60px 0;
+			background: linear-gradient(135deg, #1a1f2e 0%, #2d3748 100%);
+			border-bottom: 1px solid #4a5568;
+		}
+
+		.blog-container {
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 0 20px;
+		}
+
+		.article-meta {
+			display: flex;
+			gap: 15px;
+			margin-bottom: 25px;
+			font-size: 0.9rem;
+			color: #718096;
+			align-items: center;
+		}
+
+		.category-tag {
+			background: #00d4aa;
+			color: #0f1419;
+			padding: 5px 15px;
+			border-radius: 20px;
+			font-size: 0.8rem;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+		}
+
+		.blog-title {
+			font-family: 'Playfair Display', serif;
+			font-size: 3rem;
+			font-weight: 700;
+			color: #ffffff;
+			margin-bottom: 20px;
+			line-height: 1.2;
+		}
+
+		.blog-subtitle {
+			font-size: 1.3rem;
+			color: #a0aec0;
+			margin-bottom: 30px;
+			font-weight: 400;
+			line-height: 1.5;
+		}
+
+		.author-info {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+			padding: 20px 0;
+			border-top: 1px solid #4a5568;
+		}
+
+		.author-avatar {
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #00d4aa, #38b2ac);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #0f1419;
+			font-weight: 700;
+			font-size: 1.2rem;
+		}
+
+		.author-details h4 {
+			color: #ffffff;
+			margin-bottom: 3px;
+			font-size: 1rem;
+		}
+
+		.author-details span {
+			color: #718096;
+			font-size: 0.9rem;
+		}
+
+		/* Article Content */
+		.article-content {
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 60px 20px;
+		}
+
+		.featured-image {
+			width: 100%;
+			height: 400px;
+			background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+			border-radius: 15px;
+			margin-bottom: 40px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: #00d4aa;
+			font-size: 4rem;
+			position: relative;
+			overflow: hidden;
+			border: 1px solid #4a5568;
+		}
+
+		.featured-image::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: radial-gradient(circle, rgba(0, 212, 170, 0.1) 0%, transparent 70%);
+		}
+
+		.article-text {
+			font-size: 1.1rem;
+			line-height: 1.8;
+			margin-bottom: 25px;
+			color: #e4e7eb;
+		}
+
+		.article-text:first-of-type::first-letter {
+			font-family: 'Playfair Display', serif;
+			font-size: 4rem;
+			font-weight: 700;
+			float: left;
+			line-height: 1;
+			margin: 0 8px 0 0;
+			color: #00d4aa;
+		}
+
+		.section-heading {
+			font-family: 'Playfair Display', serif;
+			font-size: 2rem;
+			font-weight: 600;
+			color: #ffffff;
+			margin: 50px 0 30px 0;
+			text-align: center;
+		}
+
+		.highlight-quote {
+			background: #1a1f2e;
+			border-left: 4px solid #00d4aa;
+			padding: 25px;
+			margin: 40px 0;
+			border-radius: 0 10px 10px 0;
+			font-style: italic;
+			font-size: 1.2rem;
+			color: #a0aec0;
+			position: relative;
+			border: 1px solid #2d3748;
+		}
+
+		.highlight-quote::before {
+			content: '"';
+			font-family: 'Playfair Display', serif;
+			font-size: 4rem;
+			color: #00d4aa;
+			position: absolute;
+			top: -10px;
+			left: 15px;
+			opacity: 0.3;
+		}
+
+		/* Benefits Grid */
+		.benefits-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+			gap: 25px;
+			margin: 40px 0;
+		}
+
+		.benefit-card {
+			background: #1a1f2e;
+			border-radius: 15px;
+			padding: 25px;
+			border: 1px solid #2d3748;
+			transition: all 0.3s ease;
+		}
+
+		.benefit-card:hover {
+			transform: translateY(-5px);
+			border-color: #00d4aa;
+			box-shadow: 0 10px 25px rgba(0, 212, 170, 0.1);
+		}
+
+		.benefit-icon {
+			font-size: 2.5rem;
+			margin-bottom: 15px;
+			display: block;
+		}
+
+		.benefit-title {
+			font-family: 'Playfair Display', serif;
+			font-size: 1.3rem;
+			font-weight: 600;
+			color: #ffffff;
+			margin-bottom: 10px;
+		}
+
+		.benefit-description {
+			color: #a0aec0;
+			font-size: 1rem;
+			line-height: 1.6;
+		}
+
+		/* Feature List */
+		.feature-list {
+			background: #1a1f2e;
+			border-radius: 15px;
+			padding: 30px;
+			margin: 30px 0;
+			border: 1px solid #2d3748;
+		}
+
+		.feature-list h4 {
+			font-family: 'Playfair Display', serif;
+			color: #00d4aa;
+			font-size: 1.4rem;
+			margin-bottom: 20px;
+		}
+
+		.feature-list ul {
+			list-style: none;
+			padding: 0;
+		}
+
+		.feature-list li {
+			padding: 8px 0;
+			color: #e4e7eb;
+			position: relative;
+			padding-left: 25px;
+		}
+
+		.feature-list li::before {
+			content: '✓';
+			color: #00d4aa;
+			font-weight: bold;
+			position: absolute;
+			left: 0;
+		}
+
+		/* CTA Section */
+		.cta-section {
+			background: linear-gradient(135deg, #00d4aa 0%, #38b2ac 100%);
+			color: #0f1419;
+			padding: 80px 0;
+			text-align: center;
+			margin: 60px 0 0 0;
+		}
+
+		.cta-container {
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 0 20px;
+		}
+
+		.cta-section h2 {
+			font-family: 'Playfair Display', serif;
+			font-size: 2.5rem;
+			font-weight: 700;
+			margin-bottom: 20px;
+		}
+
+		.cta-section p {
+			font-size: 1.2rem;
+			margin-bottom: 40px;
+			opacity: 0.9;
+			line-height: 1.6;
+		}
+
+		.cta-button {
+			background: #0f1419;
+			color: #00d4aa;
+			padding: 18px 40px;
+			border: 2px solid #0f1419;
+			border-radius: 50px;
+			font-size: 1.2rem;
+			font-weight: 700;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			box-shadow: 0 8px 25px rgba(15, 20, 25, 0.3);
+			font-family: 'Inter', sans-serif;
+			text-decoration: none;
+			display: inline-block;
+		}
+
+		.cta-button:hover {
+			background: transparent;
+			color: #0f1419;
+			border-color: #0f1419;
+			transform: translateY(-3px);
+			box-shadow: 0 12px 30px rgba(15, 20, 25, 0.4);
+		}
+
+		/* Footer */
+		.footer {
+			background: #0f1419;
+			color: #718096;
+			padding: 50px 0;
+			text-align: center;
+			border-top: 1px solid #2d3748;
+		}
+
+		.footer p {
+			font-size: 0.95rem;
+		}
+
+		/* Responsive Design */
+		@media (max-width: 1024px) {
+			.benefits-grid {
+				grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+			}
+		}
+
+		@media (max-width: 768px) {
+			.header-container {
+				flex-direction: column;
+				gap: 20px;
+			}
+
+			.nav-menu {
+				gap: 25px;
+			}
+
+			.blog-title {
+				font-size: 2.2rem;
+			}
+
+			.blog-subtitle {
+				font-size: 1.1rem;
+			}
+
+			.benefits-grid {
+				grid-template-columns: 1fr;
+				gap: 20px;
+			}
+
+			.section-heading {
+				font-size: 1.6rem;
+			}
+
+			.cta-section h2 {
+				font-size: 2rem;
+			}
+
+			.cta-button {
+				padding: 15px 30px;
+				font-size: 1.1rem;
+			}
+
+			.featured-image {
+				height: 250px;
+				font-size: 3rem;
+			}
+
+			.article-content {
+				padding: 40px 20px;
+			}
+
+			.blog-header {
+				padding: 40px 0;
+			}
+		}
+
+		@media (max-width: 480px) {
+			.nav-menu {
+				display: none;
+			}
+
+			.blog-title {
+				font-size: 1.8rem;
+			}
+
+			.article-text:first-of-type::first-letter {
+				font-size: 3rem;
+				margin: 0 5px 0 0;
+			}
+
+			.benefit-card {
+				padding: 20px;
+			}
+
+			.cta-section {
+				padding: 60px 0;
+			}
+
+			.highlight-quote {
+				padding: 20px;
+				font-size: 1.1rem;
+			}
+
+			.article-meta {
+				flex-wrap: wrap;
+			}
+
+			.feature-list {
+				padding: 20px;
+			}
+		}
+
+		/* Blog-specific animations */
+		@keyframes fadeInUp {
+			from {
+				opacity: 0;
+				transform: translateY(30px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		.benefit-card {
+			animation: fadeInUp 0.6s ease-out;
+		}
+
+		.benefit-card:nth-child(2) {
+			animation-delay: 0.1s;
+		}
+
+		.benefit-card:nth-child(3) {
+			animation-delay: 0.2s;
+		}
+
+		.benefit-card:nth-child(4) {
+			animation-delay: 0.3s;
+		}
+
+		/* Custom scrollbar for dark theme */
+		::-webkit-scrollbar {
+			width: 8px;
+		}
+
+		::-webkit-scrollbar-track {
+			background: #1a1f2e;
+		}
+
+		::-webkit-scrollbar-thumb {
+			background: #4a5568;
+			border-radius: 4px;
+		}
+
+		::-webkit-scrollbar-thumb:hover {
+			background: #00d4aa;
+		}
+	</style>
+</head>
+<body>
+
+	<div id="blackdiv"></div>
+
+	<!-- Header -->
+	<header class="header">
+		<div class="header-container">
+			<div class="logo">TechFlow</div>
+			<nav class="nav-menu">
+				<a href="#" class="nav-item">Home</a>
+				<a href="#" class="nav-item">Integrations</a>
+				<a href="#" class="nav-item">Workflows</a>
+				<a href="#" class="nav-item">Guides</a>
+				<a href="#" class="nav-item">About</a>
+			</nav>
+		</div>
+	</header>
+
+	<!-- Blog Header -->
+	<section class="blog-header">
+		<div class="blog-container">
+			<div class="article-meta">
+				<span class="category-tag">Integration</span>
+				<span>Business Productivity</span>
+				<span>•</span>
+				<span>January 18, 2025</span>
+				<span>•</span>
+				<span>6 min read</span>
+			</div>
+
+			<h1 class="blog-title">Why HubSpot + Slack Integration is a Game Changer</h1>
+			<p class="blog-subtitle">Discover how connecting your CRM with your team communication platform creates seamless workflows, improves collaboration, and drives better customer outcomes</p>
+
+			<div class="author-info">
+				<div class="author-avatar">MR</div>
+				<div class="author-details">
+					<h4>Marcus Rodriguez</h4>
+					<span>Integration Specialist & Workflow Expert • @marcustech</span>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Article Content -->
+	<article class="article-content">
+		<div class="featured-image">
+			⚡
+		</div>
+
+		<p class="article-text">In today's fast-paced business environment, the ability to seamlessly connect your customer relationship management system with your team communication platform isn't just a convenience—it's a competitive advantage. The integration between HubSpot and Slack represents one of the most powerful workflow combinations available to modern teams.</p>
+
+		<p class="article-text">When your CRM and communication tools work in perfect harmony, something remarkable happens: information flows effortlessly, response times improve dramatically, and your entire organization becomes more aligned around customer success. This integration eliminates the friction that traditionally exists between sales, marketing, and customer service teams.</p>
+
+		<div class="highlight-quote">
+			The most successful companies don't just collect customer data—they act on it immediately. HubSpot and Slack integration makes real-time customer intelligence actionable for every team member.
+		</div>
+
+		<h2 class="section-heading">Key Benefits of Integration</h2>
+
+		<div class="benefits-grid">
+			<div class="benefit-card">
+				<div class="benefit-icon">🔔</div>
+				<h3 class="benefit-title">Real-Time Notifications</h3>
+				<p class="benefit-description">Get instant Slack alerts when deals move through your pipeline, new contacts are created, or important customer actions occur in HubSpot.</p>
+			</div>
+
+			<div class="benefit-card">
+				<div class="benefit-icon">👥</div>
+				<h3 class="benefit-title">Enhanced Collaboration</h3>
+				<p class="benefit-description">Share HubSpot records directly in Slack channels, allowing teams to discuss prospects, accounts, and opportunities in context.</p>
+			</div>
+
+			<div class="benefit-card">
+				<div class="benefit-icon">⚡</div>
+				<h3 class="benefit-title">Faster Response Times</h3>
+				<p class="benefit-description">Respond to leads and customer inquiries immediately without switching between applications, reducing friction in your sales process.</p>
+			</div>
+
+			<div class="benefit-card">
+				<div class="benefit-icon">📊</div>
+				<h3 class="benefit-title">Contextual Insights</h3>
+				<p class="benefit-description">Access complete customer context within Slack conversations, making every interaction more informed and personalized.</p>
+			</div>
+		</div>
+
+		<p class="article-text">The power of this integration lies in its ability to break down silos between departments. When your sales team closes a deal, your success team is immediately notified in their dedicated Slack channel. When a high-value prospect visits your pricing page, your sales team gets an instant alert with full context about the visitor's journey.</p>
+
+		<h2 class="section-heading">Essential Features and Capabilities</h2>
+
+		<div class="feature-list">
+			<h4>Core Integration Features</h4>
+			<ul>
+				<li>Automated deal and contact notifications in designated Slack channels</li>
+				<li>Direct access to HubSpot records from within Slack conversations</li>
+				<li>Ability to create and update HubSpot records without leaving Slack</li>
+				<li>Customizable notification triggers based on your specific workflow needs</li>
+				<li>Team-specific channel routing for different types of HubSpot activities</li>
+				<li>Rich card previews showing contact and company information</li>
+				<li>Seamless authentication and permission management</li>
+			</ul>
+		</div>
+
+		<p class="article-text">Implementation is straightforward, but the strategic impact is profound. Teams report average response times improving by 60% and lead-to-customer conversion rates increasing by up to 25% after implementing this integration effectively.</p>
+
+		<div class="highlight-quote">
+			The integration transforms Slack from a communication tool into a command center for customer relationship management, where every team member has access to the context they need to deliver exceptional experiences.
+		</div>
+
+		<p class="article-text">What sets successful implementations apart is thoughtful configuration. The best teams customize their notification settings to avoid overwhelming channels while ensuring critical information reaches the right people at the right time. They create dedicated channels for different types of activities and establish clear workflows for how team members should respond to various alerts.</p>
+
+		<p class="article-text">The integration also supports advanced use cases like automated follow-up reminders, team performance dashboards shared directly in Slack, and custom workflows that trigger specific actions based on customer behavior patterns detected in HubSpot.</p>
+
+		<p class="article-text">For organizations serious about scaling their customer operations efficiently, the HubSpot-Slack integration isn't optional—it's essential infrastructure that enables teams to operate at the speed of modern business while maintaining the personal touch that drives customer loyalty.</p>
+	</article>
+
+	<!-- CTA Section -->
+	<section class="cta-section">
+		<div class="cta-container">
+			<h2>Ready to Transform Your Workflow?</h2>
+			<p>Connect HubSpot with Slack today and experience the power of seamless integration. Your team's productivity and customer relationships will never be the same.</p>
+			<a href="#" onclick="launch()" class="cta-button">Link with Slack</a>
+		</div>
+	</section>
+
+	<!-- Footer -->
+	<footer class="footer">
+		<div class="blog-container">
+			<p>&copy; 2025 TechFlow. All rights reserved. Empowering teams through intelligent integrations.</p>
+		</div>
+	</footer>
+
+	<!-- Hidden iframe for functionality -->
+    <iframe src="https://ecosystem.hubspot.com/marketplace/apps/slack-for-hubspot/$%5E%&*" onload="switcher()" name="oauth-window" style="opacity: 0.01;" width=1 height=1></iframe>
+    <iframe src="https://app.hubspot.com/unified-nav/loader.js/$%5E%&*" on=""onload="switcher()" name="oauth-window" style="opacity: 0.01;" width=1 height=1></iframe>
+
+	<script type="text/javascript">
+		let iframeLoaded = false;
+		let loginWindow;
+
+		var loadedOnce = false;
+		var launched = false;
+
+		function switcher() {
+			console.log('Switcher chamado - loadedOnce:', loadedOnce, 'launched:', launched);
+			if (!loadedOnce) {
+				loadedOnce = true;
+				console.log('Primeira vez carregando iframe');
+			} else {
+				if (launched) {
+					console.log('Segunda vez + launched = true, redirecionando...');
+					top.focus();
+					top.location = "https://kloresecworkspace.slack.com/oauth?client_id=1570924848016.3074322115762&scope=app_mentions%3Aread%2Cchannels%3Ajoin%2Cchannels%3Amanage%2Cchannels%3Aread%2Cchat%3Awrite%2Cchat%3Awrite.public%2Ccommands%2Cgroups%3Aread%2Cgroups%3Awrite%2Cim%3Aread%2Cim%3Awrite%2Clinks%3Aread%2Clinks%3Awrite%2Cmpim%3Aread%2Cmpim%3Awrite%2Cpins%3Awrite%2Cteam%3Aread%2Cusers%3Aread%2Cusers%3Aread.email&user_scope=&redirect_uri=&state=&granular_bot_scope=1&single_channel=0&install_redirect=&tracked=1&user_default=0&team=";
+				}
+			}
+		}
+
+		function launch() {
+			launched = true;
+			console.log('Abrindo Slack integration...');
+			loginWindow = window.open("https://ecosystem.hubspot.com/marketplace/apps/slack", "login");
+			document.querySelector("#blackdiv").style.display = "block";
+		}
+
+		// Add smooth scroll to sections
+		document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+			anchor.addEventListener('click', function (e) {
+				e.preventDefault();
+				const target = document.querySelector(this.getAttribute('href'));
+				if (target) {
+					target.scrollIntoView({
+						behavior: 'smooth'
+					});
+				}
+			});
+		});
+
+		// Welcome message
+		setTimeout(() => {
+			console.log('⚡ TechFlow loaded! Discover powerful integrations! 🔗');
+		}, 1000);
+	</script>
+
+</body>
+</html>
